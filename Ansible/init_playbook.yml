@@ -1,0 +1,32 @@
+---
+- name: Playbook init nodes
+  hosts: all
+  gather_facts: true
+  vars_prompt:
+    - name: username
+      prompt: enter your username.
+      private: false
+    - name: password
+      prompt: enter your password.
+      private: true
+  tasks:
+    - name: Update system.
+      ansible.builtin.yum:
+        name: "*"
+        state: latest
+    
+    - name: Set the hostname
+      hostname:
+        name: "{{ inventory_hostname }}"
+
+    - name: Register redhat manager.
+      community.general.redhat_subscription:
+        state: present
+        username: "{{ username }}"
+        password: "{{ password }}"
+        auto_attach: true
+
+    - name: Create hosts file.
+      ansible.builtin.template:
+        src: hosts.j2
+        dest: /etc/hosts

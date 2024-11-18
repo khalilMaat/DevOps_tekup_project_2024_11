@@ -1,0 +1,11 @@
++ terraform init : When you create a new configuration — or check out an existing configuration
+
++ terraform fmt : We recommend using consistent formatting in all of your configuration files.
+
++ terraform validate : You can also make sure your configuration is syntactically valid 
+
++ terraform apply
+
++ terraform show
+
++ terraform state list
