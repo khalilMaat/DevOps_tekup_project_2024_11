@@ -62,6 +62,13 @@ resource "aws_security_group" "normal_SG" {
     protocol    = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  # Outbound (egress) rule
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"  # -1 allows all protocols
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_security_group" "k8s_SG" {
@@ -104,6 +111,13 @@ resource "aws_security_group" "k8s_SG" {
     protocol    = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  # Outbound (egress) rule
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"  # -1 allows all protocols
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 
@@ -115,7 +129,7 @@ resource "aws_instance" "jenkins" {
   security_groups = [aws_security_group.normal_SG.name]
 
   tags = {
-    Name = "JenkinsServer"
+    Name = "Jenkins"
   }
 }
 
@@ -126,18 +140,18 @@ resource "aws_instance" "ansible" {
   security_groups = [aws_security_group.normal_SG.name]
 
   tags = {
-    Name = "AnsibleServer"
+    Name = "Ansible"
   }
 }
 
-resource "aws_instance" "grafana_prometheus" {
+resource "aws_instance" "Monotoring" {
   ami             = "ami-0583d8c7a9c35822c" # Replace with your RedHat AMI ID
   instance_type   = "t2.micro"
   key_name        = aws_key_pair.my_key_pair.key_name
   security_groups = [aws_security_group.normal_SG.name]
 
   tags = {
-    Name = "GrafanaPrometheusServer"
+    Name = "Monotoring"
   }
 }
 
@@ -180,7 +194,7 @@ output "instance_ips" {
   value = {
     jenkins            = aws_instance.jenkins.public_ip
     ansible            = aws_instance.ansible.public_ip
-    grafana_prometheus = aws_instance.grafana_prometheus.public_ip
+    Monotoring = aws_instance.Monotoring.public_ip
     k8s_master         = aws_instance.k8s_master.public_ip
     k8s_worker1        = aws_instance.k8s_worker1.public_ip
     k8s_worker2        = aws_instance.k8s_worker2.public_ip
