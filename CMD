@@ -1,0 +1,5 @@
+#get all instance list:
+aws ec2 describe-instances --query 'Reservations[*].Instances[*].[InstanceId,State.Name,Tags[?Key==`Name`].Value]' --output json
+
+#get the ip address:
+aws ec2 describe-instances --instance-ids i-091f8ad3f64eb6191  --query 'Reservations[*].Instances[*].PublicIpAddress' --output json 

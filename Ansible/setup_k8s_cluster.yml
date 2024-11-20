@@ -1,0 +1,120 @@
+---
+- name: Playbook setup k8s cluster 
+  hosts: k8s
+  gather_facts: true
+  tasks:
+    - name: Enable IPv4 packet forwarding.
+      lineinfile:
+        path: /etc/sysctl.d/k8s.conf
+        create: true
+        line: net.ipv4.ip_forward = 1
+      notify: Apply sysctl
+
+    - name: Disable swap in fstab.
+      lineinfile:
+        path: /etc/fstab
+        regexp: '^\s*([^#]+\s+swap\s+swap\s+.*)$'
+        state: absent
+
+    - name: Turn off swap.
+      command: swapoff -a
+
+    - name: Set SELinux in permissive mode.
+      lineinfile:
+        path: /etc/selinux/config
+        regexp: '^SELINUX='
+        line: 'SELINUX=permissive'
+
+    - name: Set selinux 0.
+      ansible.builtin.command: setenforce 0
+
+    - name: Add repository docker-ce.
+      shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+    - name: Installing containerd.
+      yum:
+        name: containerd.io
+        state: present
+        
+    - name: Generate containerd/config.toml.
+      shell: "containerd config default | sudo tee /etc/containerd/config.toml"
+
+    - name: Modify SystemdCgroup to true.
+      lineinfile:
+        path: /etc/containerd/config.toml
+        regexp: '^(\s*SystemdCgroup\s*=\s*)'
+        line: '            SystemdCgroup = true'
+      notify: restart containerd
+
+    - name: Start & enable containerd service.
+      ansible.builtin.systemd_service:
+        name: containerd
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Add repository of kubernetes.repo
+      ansible.builtin.yum_repository:
+        name: kubernetes
+        description: kubernetes
+        baseurl: https://pkgs.k8s.io/core:/stable:/v1.30/rpm/
+        enabled: true
+        gpgcheck: true
+        gpgkey: https://pkgs.k8s.io/core:/stable:/v1.30/rpm/repodata/repomd.xml.key
+
+    - name: Install kubelet & kubeadm & kubectl.
+      ansible.builtin.yum:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        disable_excludes: kubernetes
+
+    - name: Start & enable kubelet service.
+      ansible.builtin.systemd_service:
+        name: kubelet
+        state: started
+        enabled: true
+        daemon_reload: true
+    
+    - name: Fetch public IP using an external service
+      ansible.builtin.uri:
+        url: "https://api.ipify.org?format=json"
+        return_content: yes
+      register: public_ip
+
+    - name: Display the public IP address
+      ansible.builtin.debug:
+        msg: "Public IP address is {{ public_ip.json.ip }}"
+
+    - name: Set private IP in variable
+      set_fact:
+        private_ip: "{{ ansible_facts['default_ipv4']['address'] }}"
+
+    - name: Bootstrap cluster using kubeadm init.
+      shell: kubeadm init --apiserver-advertise-address "{{ private_ip }}" --pod-network-cidr=192.168.0.0/16 --cri-socket unix:///var/run/containerd/containerd.sock --upload-certs
+      when: inventory_hostname == 'k8s-master'
+
+    - name: Create kubeconfig folder.
+      command: mkdir /home/ec2-user/.kube
+      when: inventory_hostname == 'k8s-master'
+
+    - name: Copy kube config to /home/ec2-user
+      copy:
+        src: /etc/kubernetes/admin.conf 
+        dest: /home/ec2-user/.kube/config
+        owner: ec2-user
+        group: ec2-user
+        remote_src: yes
+      when: inventory_hostname == 'k8s-master'
+
+  handlers:
+    - name: Apply sysctl
+      ansible.builtin.shell: sysctl --system
+    
+    - name: restart containerd
+      ansible.builtin.systemd_service:
+        name: containerd
+        state: restarted
+        daemon_reload: true
+
