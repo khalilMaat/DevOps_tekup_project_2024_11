@@ -3,3 +3,13 @@ aws ec2 describe-instances --query 'Reservations[*].Instances[*].[InstanceId,Sta
 
 #get the ip address:
 aws ec2 describe-instances --instance-ids i-091f8ad3f64eb6191  --query 'Reservations[*].Instances[*].PublicIpAddress' --output json 
+
+# Use Port Forwarding for Testing
+kubectl port-forward service/react-service 8080:80
+
+# Get services
+kubectl get services -o wide
+
+# Get all namespaces
+kubectl get pods -o wide --all-namespaces
+

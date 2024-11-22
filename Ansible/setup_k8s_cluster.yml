@@ -2,6 +2,8 @@
 - name: Playbook setup k8s cluster 
   hosts: k8s
   gather_facts: true
+  vars:
+    public_ip: 98.84.145.123
   tasks:
     - name: Enable IPv4 packet forwarding.
       lineinfile:
@@ -81,18 +83,19 @@
       ansible.builtin.uri:
         url: "https://api.ipify.org?format=json"
         return_content: yes
-      register: public_ip
+      register: public_ips
 
     - name: Display the public IP address
       ansible.builtin.debug:
-        msg: "Public IP address is {{ public_ip.json.ip }}"
+        msg: "Public IP address is {{ public_ips.json.ip }}"
 
     - name: Set private IP in variable
       set_fact:
         private_ip: "{{ ansible_facts['default_ipv4']['address'] }}"
+      when: inventory_hostname == 'k8s-master'
 
     - name: Bootstrap cluster using kubeadm init.
-      shell: kubeadm init --apiserver-advertise-address "{{ private_ip }}" --pod-network-cidr=192.168.0.0/16 --cri-socket unix:///var/run/containerd/containerd.sock --upload-certs
+      shell: kubeadm init --apiserver-advertise-address "{{ private_ip }}" --apiserver-cert-extra-sans "{{ public_ip }},{{ private_ip }}" --pod-network-cidr=192.168.0.0/16 --cri-socket unix:///var/run/containerd/containerd.sock --upload-certs
       when: inventory_hostname == 'k8s-master'
 
     - name: Create kubeconfig folder.

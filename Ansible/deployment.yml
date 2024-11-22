@@ -1,0 +1,56 @@
+---
+- name: Playbook to craete deployment in k8s cluster
+  hosts: k8s-master
+  vars:
+    image: khalil12/devops:latest
+  tasks:
+    - name: Install k8s module using pip
+      pip:
+        name: kubernetes
+        state: present
+        executable: /usr/bin/pip3
+        
+    - name: Create Deployment file.
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: react-app
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app: react-app
+            template:
+              metadata:
+                labels:
+                  app: react-app
+              spec:
+                containers:
+                - name: react-container
+                  image: "{{ image }}"
+                  ports:
+                  - containerPort: 80
+
+
+    - name: Create Service file.
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: react-service
+          spec:
+            selector:
+              app: react-app
+            ports:
+            - protocol: TCP
+              port: 80
+              targetPort: 80
+            type: NodePort
+
+
+

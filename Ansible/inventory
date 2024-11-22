@@ -1,5 +1,5 @@
 [k8s]
-k8s-master
+k8s-master 
 k8s-worker1
 k8s-worker2
 

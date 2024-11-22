@@ -194,7 +194,7 @@ output "instance_ips" {
   value = {
     jenkins            = aws_instance.jenkins.public_ip
     ansible            = aws_instance.ansible.public_ip
-    Monotoring = aws_instance.Monotoring.public_ip
+    Monotoring         = aws_instance.Monotoring.public_ip
     k8s_master         = aws_instance.k8s_master.public_ip
     k8s_worker1        = aws_instance.k8s_worker1.public_ip
     k8s_worker2        = aws_instance.k8s_worker2.public_ip
